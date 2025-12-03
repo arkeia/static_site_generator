@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Optional
 
 class TextType(Enum):
-    PLAIN = "plain"
+    TEXT = "text"
     BOLD = "bold"
     ITALIC = "italic"
     CODE = "code"
@@ -26,7 +26,7 @@ class TextNode:
     def text_node_to_html_node(self):
         from htmlnode import LeafNode
 
-        if self.text_type == TextType.PLAIN:
+        if self.text_type == TextType.TEXT:
             return LeafNode(tag=None, value=self.text)
         elif self.text_type == TextType.BOLD:
             return LeafNode(tag="b", value=self.text)
