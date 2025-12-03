@@ -22,3 +22,25 @@ class TextNode:
 
     def __repr__(self):
         return f"TextNode({self.text!r}, {self.text_type}, {self.url!r})"
+    
+    def text_node_to_html_node(self):
+        from htmlnode import LeafNode
+
+        if self.text_type == TextType.PLAIN:
+            return LeafNode(tag=None, value=self.text)
+        elif self.text_type == TextType.BOLD:
+            return LeafNode(tag="b", value=self.text)
+        elif self.text_type == TextType.ITALIC:
+            return LeafNode(tag="i", value=self.text)
+        elif self.text_type == TextType.CODE:
+            return LeafNode(tag="code", value=self.text)
+        elif self.text_type == TextType.LINK:
+            if self.url is None:
+                raise ValueError("Link TextNode must have a URL")
+            return LeafNode(tag="a", value=self.text, props={"href": self.url})
+        elif self.text_type == TextType.IMAGE:
+            if self.url is None:
+                raise ValueError("Image TextNode must have a URL")
+            return LeafNode(tag="img", value="", props={"src": self.url, "alt": self.text})
+        else:
+            raise ValueError(f"Unsupported TextType: {self.text_type}")
