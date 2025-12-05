@@ -1,8 +1,12 @@
 
 from enum import Enum
+
+from charset_normalizer import from_path
 from textnode import TextNode, TextType
 from htmlnode import LeafNode, ParentNode
 import re
+import os
+import shutil
 
 
 class BlockType(Enum):
@@ -184,20 +188,26 @@ def block_to_block_type(text):
     Returns:
         BlockType: The determined BlockType of the block.
     """
-
+    print(f"Analyzing block:\n{text}\n---")
     lines = text.split("\n")
 
     if all(re.match(r"^\s*-\s+", line) for line in lines):
+        print( "Detected unordered list block.")
         return BlockType.UNORDERED_LIST
     elif all(re.match(r"^\s*\d+\.\s+", line) for line in lines):
+        print( "Detected ordered list block.")
         return BlockType.ORDERED_LIST
-    elif all(re.match(r"^\s*>+\s+", line) for line in lines):
+    elif all(re.match(r"^>", line) for line in lines):
+        print( "Detected quote block.")
         return BlockType.QUOTE
     elif re.match(r"^\s*```", lines[0]) and re.match(r"^\s*```", lines[-1]):
+        print( "Detected code block.")
         return BlockType.CODE
-    elif re.match(r"^\s*#+\s+", lines[0]):
+    elif re.match(r"^\s*#+\s+", lines[0]):  
+        print( "Detected header block.")
         return BlockType.HEADER
     else:
+        print( "Detected paragraph block.")
         return BlockType.PARAGRAPH
 
 
@@ -250,15 +260,69 @@ def markdown_to_html_node(markdown):
         elif block_type == BlockType.QUOTE:
             quote_lines = []
             for line in block.split("\n"):
-                line_content = re.sub(r"^\s*>+\s+", "", line)
+                line_content = re.sub(r">\s*", "", line)
                 text_nodes = text_to_textnodes(line_content)
-                html_children = [tn.text_node_to_html_node() for tn in text_nodes]
-                quote_lines.append(ParentNode(tag="p", children=html_children))
+                quote_lines.append(LeafNode(tag=None,value=line_content))
             html_nodes.append(ParentNode(tag="blockquote", children=quote_lines))
     if len(html_nodes) == 1:
         return html_nodes[0]
     return ParentNode(tag="div", children=html_nodes)
 
 
+def recursive_directory_copy(src_path, dest_path):
+    """
+    Recursively copies the contents of one directory to another.
 
+    Args:
+        src_path (str): The source directory path.
+        dest_path (str): The destination directory path.
+    """
+    if not os.path.exists(dest_path):
+        os.makedirs(dest_path)
+    for item in os.listdir(src_path):
+        s = os.path.join(src_path, item)
+        d = os.path.join(dest_path, item)
+        if os.path.isdir(s):
+            recursive_directory_copy(s, d)
+        else:
+            shutil.copy(s, d)
+        
+def extract_title(markdown):
+    """
+    Extracts the title from a markdown string. The title is defined as the text of the first level 1 header.
 
+    Args:
+        markdown (str): The input markdown string.
+
+    Returns:
+        str: The extracted title, or an empty string if no level 1 header is found.
+    """
+    lines = markdown.split("\n")
+    for line in lines:
+        if line.startswith("# "):
+            return line[2:].strip()
+    raise ValueError("No level 1 header found in the markdown.")
+
+def generate_page(from_path, template_path, dest_path):
+    """
+    Generates an HTML page by combining markdown content with an HTML template.
+
+    Args:
+        from_path (str): The path to the markdown file.
+        template_path (str): The path to the HTML template file.
+        dest_path (str): The path to save the generated HTML file.
+    """
+
+    with open(from_path, 'r', encoding='utf-8') as f:
+        markdown_content = f.read()
+    
+    title = extract_title(markdown_content)
+    html_node = markdown_to_html_node(markdown_content)
+    body_html = html_node.to_html()
+    
+    with open(template_path, 'r', encoding='utf-8') as f:
+        template_content = f.read()
+    
+    final_html = template_content.replace("{{ Title }}", title, count=1).replace("{{ Content }}", body_html, count=1)
+    with open(dest_path, 'w', encoding='utf-8') as f:
+        f.write(final_html)

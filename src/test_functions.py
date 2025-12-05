@@ -1,4 +1,6 @@
 import unittest
+import tempfile
+import os
 
 from textnode import TextNode, TextType
 from functions import extract_markdown_images, extract_markdown_links, markdown_to_blocks, split_nodes_delimiter
@@ -209,3 +211,109 @@ This is the same paragraph on a new line
         tn = TextNode("alt", TextType.IMAGE, url="https://img")
         hn = tn.text_node_to_html_node()
         self.assertEqual(hn.to_html(), "<img src=\"https://img\" alt=\"alt\"></img>")
+
+    def test_extract_title(self):
+        from functions import extract_title
+
+        # simple title
+        self.assertEqual(extract_title("# My Title"), "My Title")
+
+        # title with extra spaces
+        self.assertEqual(extract_title("#   Spaced Title  "), "Spaced Title")
+
+        # first level-1 header is chosen
+        md = "# First\n## Second\n# Third"
+        self.assertEqual(extract_title(md), "First")
+
+        # no level-1 header raises ValueError (new behavior)
+        with self.assertRaises(ValueError):
+            extract_title("No headers here\n## Only level2")
+
+        # leading spaces before # do not count (function raises ValueError)
+        with self.assertRaises(ValueError):
+            extract_title("  # Indented")
+
+    def test_generate_page(self):
+        from functions import generate_page
+
+        # Create a temporary directory for test files
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create markdown file
+            md_path = os.path.join(tmpdir, "test.md")
+            md_content = """# My Page Title
+
+This is a paragraph with **bold** text and _italic_ text.
+
+- Item 1
+- Item 2
+"""
+            with open(md_path, 'w') as f:
+                f.write(md_content)
+
+            # Create template file
+            template_path = os.path.join(tmpdir, "template.html")
+            template_content = """<!DOCTYPE html>
+<html>
+<head>
+<title>{{ title }}</title>
+</head>
+<body>
+{{ content }}
+</body>
+</html>"""
+            with open(template_path, 'w') as f:
+                f.write(template_content)
+
+            # Generate page
+            dest_path = os.path.join(tmpdir, "output.html")
+            generate_page(md_path, template_path, dest_path)
+
+            # Verify output file exists
+            self.assertTrue(os.path.exists(dest_path))
+
+            # Verify output content
+            with open(dest_path, 'r') as f:
+                output = f.read()
+
+            # Check that title and content are replaced
+            self.assertIn("<title>My Page Title</title>", output)
+            self.assertIn("<p>This is a paragraph with <b>bold</b> text and <i>italic</i> text.</p>", output)
+            self.assertIn("<ul><li>Item 1</li><li>Item 2</li></ul>", output)
+            self.assertNotIn("{{ title }}", output)
+            self.assertNotIn("{{ content }}", output)
+
+    def test_generate_page_with_code_block(self):
+        from functions import generate_page
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create markdown with code block
+            md_path = os.path.join(tmpdir, "code.md")
+            md_content = """# Code Example
+
+Here is a code block:
+
+```
+def hello():
+    print("Hello, World!")
+```
+"""
+            with open(md_path, 'w') as f:
+                f.write(md_content)
+
+            # Simple template
+            template_path = os.path.join(tmpdir, "template.html")
+            template_content = "<html><body><h1>{{ title }}</h1>{{ content }}</body></html>"
+            with open(template_path, 'w') as f:
+                f.write(template_content)
+
+            # Generate page
+            dest_path = os.path.join(tmpdir, "output.html")
+            generate_page(md_path, template_path, dest_path)
+
+            # Verify output
+            with open(dest_path, 'r') as f:
+                output = f.read()
+
+            self.assertIn("<h1>Code Example</h1>", output)
+            self.assertIn("<pre>def hello():", output)
+            self.assertIn("print(\"Hello, World!\")", output)
