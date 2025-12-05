@@ -1,6 +1,7 @@
 
 from enum import Enum
 from textnode import TextNode, TextType
+from htmlnode import LeafNode, ParentNode
 import re
 
 
@@ -198,3 +199,66 @@ def block_to_block_type(text):
         return BlockType.HEADER
     else:
         return BlockType.PARAGRAPH
+
+
+def markdown_to_html_node(markdown):    
+    """
+    Converts a markdown string into an HtmlNode representation.
+
+    Args:
+        markdown (str): The input markdown string.
+
+    Returns:
+        HtmlNode: The HtmlNode representation of the markdown.
+    """
+    
+    blocks = markdown_to_blocks(markdown)
+    html_nodes = []
+    for block in blocks:
+        block_type = block_to_block_type(block)
+        if block_type == BlockType.PARAGRAPH:
+            text_nodes = text_to_textnodes(block)
+            html_children = [tn.text_node_to_html_node() for tn in text_nodes]
+            html_nodes.append(ParentNode(tag="p", children=html_children))
+        elif block_type == BlockType.HEADER:
+            m = re.match(r"^\s*(#+)", block)
+            level = len(m.group(1)) if m else 1
+            level = min(max(level, 1), 6)
+            text_content = re.sub(r"^\s*#+\s+", "", block)
+            text_nodes = text_to_textnodes(text_content)
+            html_children = [tn.text_node_to_html_node() for tn in text_nodes]
+            html_nodes.append(ParentNode(tag=f"h{level}", children=html_children))
+        elif block_type == BlockType.UNORDERED_LIST:
+            list_items = []
+            for line in block.split("\n"):
+                item_content = re.sub(r"^\s*-\s+", "", line)
+                text_nodes = text_to_textnodes(item_content)
+                html_children = [tn.text_node_to_html_node() for tn in text_nodes]
+                list_items.append(ParentNode(tag="li", children=html_children))
+            html_nodes.append(ParentNode(tag="ul", children=list_items))
+        elif block_type == BlockType.ORDERED_LIST:
+            list_items = []
+            for line in block.split("\n"):
+                item_content = re.sub(r"^\s*\d+\.\s+", "", line)
+                text_nodes = text_to_textnodes(item_content)
+                html_children = [tn.text_node_to_html_node() for tn in text_nodes]
+                list_items.append(ParentNode(tag="li", children=html_children))
+            html_nodes.append(ParentNode(tag="ol", children=list_items))
+        elif block_type == BlockType.CODE:
+            code_content = re.sub(r"^\s*```\s*|\s*```\s*$", "", block)
+            html_nodes.append(LeafNode(tag="pre", value=code_content))
+        elif block_type == BlockType.QUOTE:
+            quote_lines = []
+            for line in block.split("\n"):
+                line_content = re.sub(r"^\s*>+\s+", "", line)
+                text_nodes = text_to_textnodes(line_content)
+                html_children = [tn.text_node_to_html_node() for tn in text_nodes]
+                quote_lines.append(ParentNode(tag="p", children=html_children))
+            html_nodes.append(ParentNode(tag="blockquote", children=quote_lines))
+    if len(html_nodes) == 1:
+        return html_nodes[0]
+    return ParentNode(tag="div", children=html_nodes)
+
+
+
+

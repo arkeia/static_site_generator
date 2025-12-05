@@ -134,3 +134,78 @@ This is the same paragraph on a new line
             block_to_block_type("> This is a quote."),
             BlockType.QUOTE,
         )
+
+    def test_markdown_to_html_node_headers(self):
+        from functions import markdown_to_html_node
+
+        # simple header
+        node = markdown_to_html_node("# Hello World")
+        self.assertEqual(node.to_html(), "<h1>Hello World</h1>")
+
+        # header with extra hashes should clamp to h6
+        node = markdown_to_html_node("####### Too many hashes")
+        self.assertEqual(node.to_html(), "<h6>Too many hashes</h6>")
+
+        # header with surrounding whitespace
+        node = markdown_to_html_node("  ##   Indented header  ")
+        self.assertEqual(node.to_html(), "<h2>Indented header</h2>")
+
+    def test_markdown_to_html_node_lists_and_paragraphs(self):
+        from functions import markdown_to_html_node
+
+        # unordered list
+        node = markdown_to_html_node("- Item one\n- Item two")
+        self.assertEqual(node.to_html(), "<ul><li>Item one</li><li>Item two</li></ul>")
+
+        # ordered list
+        node = markdown_to_html_node("1. First\n2. Second")
+        self.assertEqual(node.to_html(), "<ol><li>First</li><li>Second</li></ol>")
+
+        # paragraph
+        node = markdown_to_html_node("This is a paragraph.")
+        self.assertEqual(node.to_html(), "<p>This is a paragraph.</p>")
+
+    def test_markdown_to_html_node_code_and_quote(self):
+        from functions import markdown_to_html_node
+
+        # code block
+        node = markdown_to_html_node("```\nprint(\"hi\")\n```")
+        self.assertEqual(node.to_html(), "<pre>print(\"hi\")</pre>")
+
+        # quote
+        node = markdown_to_html_node("> A quoted line")
+        self.assertEqual(node.to_html(), "<blockquote><p>A quoted line</p></blockquote>")
+
+    def test_textnode_to_html_node_and_htmlnode_to_html(self):
+        from textnode import TextNode, TextType
+        from htmlnode import LeafNode
+
+        # simple text node
+        tn = TextNode("hello", TextType.TEXT)
+        hn = tn.text_node_to_html_node()
+        self.assertEqual(hn.to_html(), "hello")
+
+        # bold
+        tn = TextNode("bold", TextType.BOLD)
+        hn = tn.text_node_to_html_node()
+        self.assertEqual(hn.to_html(), "<b>bold</b>")
+
+        # italic
+        tn = TextNode("ital", TextType.ITALIC)
+        hn = tn.text_node_to_html_node()
+        self.assertEqual(hn.to_html(), "<i>ital</i>")
+
+        # code
+        tn = TextNode("c", TextType.CODE)
+        hn = tn.text_node_to_html_node()
+        self.assertEqual(hn.to_html(), "<code>c</code>")
+
+        # link
+        tn = TextNode("lnk", TextType.LINK, url="https://x")
+        hn = tn.text_node_to_html_node()
+        self.assertEqual(hn.to_html(), "<a href=\"https://x\">lnk</a>")
+
+        # image
+        tn = TextNode("alt", TextType.IMAGE, url="https://img")
+        hn = tn.text_node_to_html_node()
+        self.assertEqual(hn.to_html(), "<img src=\"https://img\" alt=\"alt\"></img>")
