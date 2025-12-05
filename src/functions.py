@@ -1,8 +1,18 @@
 
+from enum import Enum
 from textnode import TextNode, TextType
 import re
 
 
+class BlockType(Enum):
+    PARAGRAPH = "paragraph"
+    HEADER = "header"
+    UNORDERED_LIST = "unordered_list"
+    ORDERED_LIST = "ordered_list"
+    CODE = "code"
+    QUOTE = "quote"
+
+    
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
     """
     Splits a list of TextNode objects into sublists whenever a TextNode with the specified delimiter is encountered.
@@ -162,3 +172,29 @@ def markdown_to_blocks(markdown):
     for block in blocks:
         result_blocks.append(block.strip("\n "))
     return result_blocks
+
+def block_to_block_type(text):
+    """
+    Determines the BlockType of a given markdown block.
+
+    Args:
+        text (str): The input markdown block.
+
+    Returns:
+        BlockType: The determined BlockType of the block.
+    """
+
+    lines = text.split("\n")
+
+    if all(re.match(r"^\s*-\s+", line) for line in lines):
+        return BlockType.UNORDERED_LIST
+    elif all(re.match(r"^\s*\d+\.\s+", line) for line in lines):
+        return BlockType.ORDERED_LIST
+    elif all(re.match(r"^\s*>+\s+", line) for line in lines):
+        return BlockType.QUOTE
+    elif re.match(r"^\s*```", lines[0]) and re.match(r"^\s*```", lines[-1]):
+        return BlockType.CODE
+    elif re.match(r"^\s*#+\s+", lines[0]):
+        return BlockType.HEADER
+    else:
+        return BlockType.PARAGRAPH
