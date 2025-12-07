@@ -1,4 +1,4 @@
-from functions import recursive_directory_copy,generate_page
+from functions import recursive_directory_copy,generate_pages_recursively
 import os
 import shutil
 
@@ -21,11 +21,9 @@ def main():
         recursive_directory_copy(static_dir, public_dir)
     
     """Generate a page from content/index.md using template.html and write it to public/index.html"""
-    content_path = os.path.join(os.getcwd(), "content", "index.md")
+    content_path = os.path.join(os.getcwd(), "content")
     template_path = os.path.join(os.getcwd(), "template.html")
-    output_path = os.path.join(public_dir, "index.html")
-    print(f"Generating page at: {output_path}")
-    generate_page(content_path, template_path, output_path)
+    generate_pages_recursively(content_path, template_path, public_dir)
     
 
 if __name__ == "__main__":

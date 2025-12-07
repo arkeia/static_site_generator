@@ -188,26 +188,19 @@ def block_to_block_type(text):
     Returns:
         BlockType: The determined BlockType of the block.
     """
-    print(f"Analyzing block:\n{text}\n---")
     lines = text.split("\n")
 
     if all(re.match(r"^\s*-\s+", line) for line in lines):
-        print( "Detected unordered list block.")
         return BlockType.UNORDERED_LIST
     elif all(re.match(r"^\s*\d+\.\s+", line) for line in lines):
-        print( "Detected ordered list block.")
         return BlockType.ORDERED_LIST
     elif all(re.match(r"^>", line) for line in lines):
-        print( "Detected quote block.")
         return BlockType.QUOTE
     elif re.match(r"^\s*```", lines[0]) and re.match(r"^\s*```", lines[-1]):
-        print( "Detected code block.")
         return BlockType.CODE
     elif re.match(r"^\s*#+\s+", lines[0]):  
-        print( "Detected header block.")
         return BlockType.HEADER
     else:
-        print( "Detected paragraph block.")
         return BlockType.PARAGRAPH
 
 
@@ -326,3 +319,24 @@ def generate_page(from_path, template_path, dest_path):
     final_html = template_content.replace("{{ Title }}", title, count=1).replace("{{ Content }}", body_html, count=1)
     with open(dest_path, 'w', encoding='utf-8') as f:
         f.write(final_html)
+
+def generate_pages_recursively(content_dir, template_path, public_dir):
+    """
+    Generates HTML pages for all markdown files in a content directory, preserving the directory structure.
+
+    Args:
+        content_dir (str): The path to the content directory containing markdown files.
+        template_path (str): The path to the HTML template file.
+        public_dir (str): The path to the public directory where generated HTML files will be saved.
+    """
+    for root, dirs, files in os.walk(content_dir):
+        for file in files:
+            if file.endswith(".md"):
+                relative_path = os.path.relpath(root, content_dir)
+                dest_directory = os.path.join(public_dir, relative_path)
+                if not os.path.exists(dest_directory):
+                    os.makedirs(dest_directory)
+                from_path = os.path.join(root, file)
+                dest_path = os.path.join(dest_directory, file[:-3] + ".html")
+                generate_page(from_path, template_path, dest_path)
+            
