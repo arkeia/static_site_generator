@@ -266,7 +266,7 @@ This is a paragraph with **bold** text and _italic_ text.
 
             # Generate page
             dest_path = os.path.join(tmpdir, "output.html")
-            generate_page(md_path, template_path, dest_path)
+            generate_page(md_path, template_path, dest_path, tmpdir)
 
             # Verify output file exists
             self.assertTrue(os.path.exists(dest_path))
@@ -308,7 +308,7 @@ def hello():
 
             # Generate page
             dest_path = os.path.join(tmpdir, "output.html")
-            generate_page(md_path, template_path, dest_path)
+            generate_page(md_path, template_path, dest_path, tmpdir)
 
             # Verify output
             with open(dest_path, 'r') as f:

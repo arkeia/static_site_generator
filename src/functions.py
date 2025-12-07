@@ -296,7 +296,7 @@ def extract_title(markdown):
             return line[2:].strip()
     raise ValueError("No level 1 header found in the markdown.")
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     """
     Generates an HTML page by combining markdown content with an HTML template.
 
@@ -304,6 +304,7 @@ def generate_page(from_path, template_path, dest_path):
         from_path (str): The path to the markdown file.
         template_path (str): The path to the HTML template file.
         dest_path (str): The path to save the generated HTML file.
+        basepath (str): The base path for the site.
     """
 
     with open(from_path, 'r', encoding='utf-8') as f:
@@ -316,11 +317,11 @@ def generate_page(from_path, template_path, dest_path):
     with open(template_path, 'r', encoding='utf-8') as f:
         template_content = f.read()
     
-    final_html = template_content.replace("{{ Title }}", title, count=1).replace("{{ Content }}", body_html, count=1)
+    final_html = template_content.replace("{{ Title }}", title, count=1).replace("{{ Content }}", body_html, count=1).replace("href=\"/", f"href=\"{basepath}").replace("src=\"/", f"src=\"{basepath}")
     with open(dest_path, 'w', encoding='utf-8') as f:
         f.write(final_html)
 
-def generate_pages_recursively(content_dir, template_path, public_dir):
+def generate_pages_recursively(content_dir, template_path, public_dir, basepath):
     """
     Generates HTML pages for all markdown files in a content directory, preserving the directory structure.
 
@@ -338,5 +339,5 @@ def generate_pages_recursively(content_dir, template_path, public_dir):
                     os.makedirs(dest_directory)
                 from_path = os.path.join(root, file)
                 dest_path = os.path.join(dest_directory, file[:-3] + ".html")
-                generate_page(from_path, template_path, dest_path)
+                generate_page(from_path, template_path, dest_path, basepath)
             
